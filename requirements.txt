@@ -1,0 +1,8 @@
+streamlit
+time
+io
+pdfminer.layout
+pdfminer.pdfpage
+pdfminer.pdfinterp
+pdfminer.converter
+pyresparser
