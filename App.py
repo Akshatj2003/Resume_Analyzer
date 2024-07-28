@@ -2,11 +2,12 @@
 import streamlit as st
 import time
 import io
+import os
 from pdfminer.layout import LAParams
 from pdfminer.pdfpage import PDFPage
 from pdfminer.pdfinterp import PDFResourceManager, PDFPageInterpreter
 from pdfminer.converter import TextConverter
-from pyresparser import ResumeParser
+import random
 
 ds_course = [['Machine Learning Crash Course by Google [Free]', 'https://developers.google.com/machine-learning/crash-course'],
              ['Machine Learning A-Z by Udemy', 'https://www.udemy.com/course/machinelearning/'],
@@ -89,17 +90,35 @@ uiux_course = [['Google UX Design Professional Certificate',
                ['Adobe XD for Beginners [Free]', 'https://youtu.be/WEljsc2jorI'],
                ['Adobe XD in Simple Way', 'https://learnux.io/course/adobe-xd']]
 
-resume_videos = ['https://youtu.be/y8YH0Qbu5h4', 'https://youtu.be/J-4Fv8nq1iA',
-                 'https://youtu.be/yp693O87GmM', 'https://youtu.be/UeMmCex9uTU',
-                 'https://youtu.be/dQ7Q8ZdnuN0', 'https://youtu.be/HQqqQx5BCFY',
-                 'https://youtu.be/CLUsplI4xMU', 'https://youtu.be/pbczsLkv7Cc']
+resume_videos = {'How to Write a Resume (Resume Writing)': 'https://youtu.be/yp693O87GmM',
+                 'Resume Hacks - How to Make a Resume Stand Out': 'https://youtu.be/UeMmCex9uTU',
+                 '5 Resume Mistakes You Need to Avoid': 'https://youtu.be/dQ7Q8ZdnuN0',
+                 'How to Get Your Resume Noticed by Employers in 5 Seconds Guaranteed': 'https://youtu.be/HQqqQx5BCFY',
+                 'Resume Tips 2019: 3 Steps to a Perfect Resume': 'https://youtu.be/CLUsplI4xMU',
+                 'Top Resume Mistakes to Avoid': 'https://youtu.be/pbczsLkv7Cc'}
 
-interview_videos = ['https://youtu.be/Ji46s5BHdr0', 'https://youtu.be/seVxXHi2YMs',
-                    'https://youtu.be/9FgfsLa_SmY', 'https://youtu.be/2HQmjLu-6RQ',
-                    'https://youtu.be/DQd_AlIvHUw', 'https://youtu.be/oVVdezJ0e7w'
-                                                                 'https://youtu.be/JZK1MZwUyUU',
-                    'https://youtu.be/CyXLhHQS3KY']
+interview_videos = {'How to Ace Your Job Interview': 'https://youtu.be/Ji46s5BHdr0',
+                    'Interview Preparation Masterclass': 'https://youtu.be/seVxXHi2YMs',
+                    '10 Most Common Interview Questions and Answers': 'https://youtu.be/9FgfsLa_SmY',
+                    'Top 10 Job Interview Questions & Answers': 'https://youtu.be/2HQmjLu-6RQ',
+                    'Job Interview Tips - How to Prepare for a Job Interview': 'https://youtu.be/DQd_AlIvHUw',
+                    'Behavioral Interview Questions and Answers': 'https://youtu.be/oVVdezJ0e7w',
+                    'How to Crack a Job Interview Successfully (7 Strategies)': 'https://youtu.be/JZK1MZwUyUU',
+                    'Job Interview Tips (Part 1): Research the Company': 'https://youtu.be/CyXLhHQS3KY'}
 
+def embed_youtube_thumbnail(video_url, width=576, height=576):
+    try:
+        if "youtu.be/" in video_url:
+            video_id = video_url.split("/")[-1]
+        elif "watch?v=" in video_url:
+            video_id = video_url.split("watch?v=")[1].split("&")[0]
+        else:
+            return "Invalid YouTube URL"
+        
+        thumbnail_url = f"https://img.youtube.com/vi/{video_id}/maxresdefault.jpg"
+        return f'<a href="{video_url}"><img src="{thumbnail_url}" width="{width}" height="{height}"></a>'
+    except Exception as e:
+        return f"Error: {e}"
 
 def extract_text_from_pdf(file):
     resource_manager = PDFResourceManager()
@@ -114,13 +133,11 @@ def extract_text_from_pdf(file):
     fake_file_handle.close()
     return text
 
-
 def calculate_efficiency_score(resume_text, keywords):
     resume_text_lower = resume_text.lower()
     matched_keywords = [keyword for keyword in keywords if keyword.lower() in resume_text_lower]
     efficiency_score = (len(matched_keywords) / len(keywords)) * 100
     return efficiency_score, matched_keywords
-
 
 def classify_efficiency_level(efficiency_score):
     if efficiency_score < 50:
@@ -130,22 +147,12 @@ def classify_efficiency_level(efficiency_score):
     else:
         return "Excellent"
 
-
 def recommend_skills(job_role):
-    # Define sets of skills for different job roles or domains
     skills_dict = {
         "Data Analyst": {"data analysis", "data visualization", "SQL", "Excel", "statistics"},
         "Machine Learning Engineer": {"machine learning", "deep learning", "Python", "TensorFlow", "scikit-learn"},
-        # Add more job roles and their associated skills as needed
     }
-
-    if job_role in skills_dict:
-        recommended_skills = skills_dict[job_role]
-    else:
-        recommended_skills = set()  # Default empty set if job role not found
-
-    return recommended_skills
-
+    return skills_dict.get(job_role, set())
 
 def recommend_courses(skills):
     recommended_courses = []
@@ -156,7 +163,6 @@ def recommend_courses(skills):
                 if skill.lower() in course_name.lower():
                     recommended_courses.append((course_name, course_link))
     return recommended_courses
-
 
 def resume_tips(efficiency_level):
     tips_dict = {
@@ -175,8 +181,7 @@ def resume_tips(efficiency_level):
     }
     return tips_dict.get(efficiency_level, [])
 
-
-def run():
+def run_user_interface():
     st.title("Resume Efficiency Analyzer")
     st.sidebar.markdown("# Upload Resume")
     pdf_file = st.sidebar.file_uploader("Choose your Resume (PDF)", type=["pdf"])
@@ -184,7 +189,7 @@ def run():
     if pdf_file is not None:
         with st.spinner('Analyzing your Resume...'):
             time.sleep(4)
-            save_pdf_path = './Uploaded_Resumes/' + pdf_file.name
+            save_pdf_path = os.path.join('./Uploaded_Resumes', pdf_file.name)
             with open(save_pdf_path, "wb") as f:
                 f.write(pdf_file.getbuffer())
 
@@ -204,8 +209,7 @@ def run():
             for keyword in matched_keywords:
                 st.write(keyword)
 
-            # Extracted job role can be obtained from the user or extracted from the resume (if available)
-            job_role = "Data Analyst"  # Example job role, you can replace this with the actual job role
+            job_role = "Data Analyst"
             recommended_skills = recommend_skills(job_role)
             if recommended_skills:
                 st.subheader("Recommended Skills:")
@@ -214,10 +218,7 @@ def run():
             else:
                 st.write("No recommended skills found for this job role.")
 
-            # Recommend courses based on extracted skills
             recommended_courses = recommend_courses(matched_keywords)
-
-            # Display recommended courses
             if recommended_courses:
                 st.subheader("Recommended Courses:")
                 for course_name, course_link in recommended_courses:
@@ -225,13 +226,47 @@ def run():
             else:
                 st.write("No recommended courses found based on the skills in the resume.")
 
-            # Provide tips to improve the resume
             tips = resume_tips(efficiency_level)
             if tips:
                 st.subheader("Resume Improvement Tips:")
                 for tip in tips:
                     st.write(tip)
 
+            st.subheader("Resume Builder YouTube Videos:")
+            resume_videos_keys = list(resume_videos.keys())
+            random.shuffle(resume_videos_keys)
+            for video_title in resume_videos_keys[:3]:
+                video_link = resume_videos[video_title]
+                st.write(f"### {video_title}")
+                st.write(embed_youtube_thumbnail(video_link, width=768, height=480), unsafe_allow_html=True)
+
+            st.subheader("Interview Preparation YouTube Videos:")
+            interview_videos_keys = list(interview_videos.keys())
+            random.shuffle(interview_videos_keys)
+            for video_title in interview_videos_keys[:3]:
+                video_link = interview_videos[video_title]
+                st.write(f"### {video_title}")
+                st.write(embed_youtube_thumbnail(video_link, width=768, height=480), unsafe_allow_html=True)
+
+def run_admin_interface():
+    st.title("Admin Interface")
+    uploaded_files = os.listdir("./Uploaded_Resumes")
+    num_uploaded_resumes = len(uploaded_files)
+    st.write(f"Number of users who have uploaded their resume: {num_uploaded_resumes}")
+    if num_uploaded_resumes > 0:
+        st.subheader("List of Users:")
+        for idx, file in enumerate(uploaded_files):
+            st.write(f"{idx + 1}. {file}")
+
+def main():
+    st.sidebar.title("Navigation")
+    selected_page = st.sidebar.radio("Go to", options=["User Interface", "Admin Interface"])
+
+    if selected_page == "User Interface":
+        run_user_interface()
+    elif selected_page == "Admin Interface":
+        run_admin_interface()
 
 if __name__ == "__main__":
-    run()
+    main()
+
