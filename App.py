@@ -8,6 +8,9 @@ from pdfminer.pdfpage import PDFPage
 from pdfminer.pdfinterp import PDFResourceManager, PDFPageInterpreter
 from pdfminer.converter import TextConverter
 import random
+# Create directories if they don't exist
+if not os.path.exists("./Uploaded_Resumes"):
+    os.makedirs("./Uploaded_Resumes")
 
 ds_course = [['Machine Learning Crash Course by Google [Free]', 'https://developers.google.com/machine-learning/crash-course'],
              ['Machine Learning A-Z by Udemy', 'https://www.udemy.com/course/machinelearning/'],
